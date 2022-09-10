@@ -22,15 +22,32 @@ double minimized_function(double volatility, double price, double strike, double
 }
 
 // Used secant method to calculate the implied volatility
-double calculate_implied_volatility(double price, double strike, double time, double rate, double value) {
+double calculate_implied_volatility_secant(double price, double strike, double time, double rate, double value) {
     double h = 0.01;
-    double guess = 0.10;
+    double guess = 0.14;
     double m = (minimized_function(guess + h, price, strike, time, rate, value) - minimized_function(guess - h, price, strike, time, rate, value)) / (2 * h);
     double impl_vol = guess - minimized_function(guess, price, strike, time, rate, value)/m;
 
-    while (abs(impl_vol-guess) > 0.01) {
+    while (abs(impl_vol-guess) > 0.001) {
         double guess = impl_vol;
         double m = (minimized_function(guess + h, price, strike, time, rate, value) - minimized_function(guess - h, price, strike, time, rate, value)) / (2 * h);
+        double impl_vol = guess - minimized_function(guess, price, strike, time, rate, value)/m;
+    }
+
+    return impl_vol;
+}
+
+// Used Newton's method to calculate the implied volatility
+double calculate_implied_volatility_newtons(double price, double strike, double time, double rate, double value) {
+    double h = 0.01;
+    // TODO: Use a grid/vector/matrix of initial guesses
+    double guess = 0.2;
+    double m = (minimized_function(guess + h, price, strike, time, rate, value) - minimized_function(guess, price, strike, time, rate, value)) / h;
+    double impl_vol = guess - minimized_function(guess, price, strike, time, rate, value)/m;
+
+    while (abs((impl_vol-guess)/impl_vol) > h) {
+        double guess = impl_vol;
+        double m = (minimized_function(guess + h, price, strike, time, rate, value) - minimized_function(guess, price, strike, time, rate, value)) / h;
         double impl_vol = guess - minimized_function(guess, price, strike, time, rate, value)/m;
     }
 
@@ -56,32 +73,32 @@ int main() {
 
     std::cin >> choice;
 
-    // volatility = 0.15;
-    // price_of_asset = 300.0;
-    // strike_price = 250.0;
-    // time_exp = 1.0;
-    // interest_rate = 0.03;
-    // option_price = 58.82
+    volatility = 0.15;
+    price_of_asset = 300.0;
+    strike_price = 250.0;
+    time_exp = 1.0;
+    interest_rate = 0.03;
+    option_price = 58.82;
 
     if (choice == 1) {
-        std::cout << "Please enter the volatility as a percent: ";
-        std::cin >> volatility;
-        volatility /= 100.0;
+        // std::cout << "Please enter the volatility as a percent: ";
+        // std::cin >> volatility;
+        // volatility /= 100.0;
 
-        std::cout << "Please enter the price of the asset: ";
-        std::cin >> price_of_asset;
+        // std::cout << "Please enter the price of the asset: ";
+        // std::cin >> price_of_asset;
 
-        std::cout << "Please enter the strike price: ";
-        std::cin >> strike_price;
+        // std::cout << "Please enter the strike price: ";
+        // std::cin >> strike_price;
 
-        std::cout << "Please enter the time until expiration in years: ";
-        std::cin >> time_exp;
+        // std::cout << "Please enter the time until expiration in years: ";
+        // std::cin >> time_exp;
 
-        std::cout << "Please enter the risk-free interest rate as a percent: ";
-        std::cin >> interest_rate;
-        interest_rate /= 100.0;
+        // std::cout << "Please enter the risk-free interest rate as a percent: ";
+        // std::cin >> interest_rate;
+        // interest_rate /= 100.0;
 
-        std::cout << "The implied volatility is " << calculate_implied_volatility(price_of_asset, strike_price, time_exp, interest_rate, option_price) << std::endl;
+        std::cout << "The implied volatility is " << calculate_implied_volatility_newtons(price_of_asset, strike_price, time_exp, interest_rate, option_price) << std::endl;
     }
     else if (choice == 2) {
         std::cout << "Please enter the volatility as a percent: ";
