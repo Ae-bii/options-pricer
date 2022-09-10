@@ -6,11 +6,6 @@ double normalCDF(double x) {
     return erfc(-x / sqrt(2.0))/2.0;
 }
 
-// Used method of finite differences to calculate the implied volatility
-double calculate_implied_volatility(double price, double strike, double time, double rate, double value) {
-    return 0;
-}
-
 // Used the Black-Scholes Formula to calculate the European Call Option
 double calculate_options_price(double volatility, double price, double strike, double time, double rate) {
     double d1 = (log(price / strike) + (rate + ((volatility * volatility) / 2.0) * time)) / (volatility * sqrt(time));
@@ -20,6 +15,29 @@ double calculate_options_price(double volatility, double price, double strike, d
 
     return ceil(option_price * 100.0) / 100.0;
 }
+
+// Difference between the call option price and calculated price
+double minimized_function(double volatility, double price, double strike, double time, double rate, double value) {
+    return value - calculate_options_price(volatility, price, strike, time, rate);
+}
+
+// Used secant method to calculate the implied volatility
+double calculate_implied_volatility(double price, double strike, double time, double rate, double value) {
+    double h = 0.01;
+    double guess = 0.10;
+    double m = (minimized_function(guess + h, price, strike, time, rate, value) - minimized_function(guess - h, price, strike, time, rate, value)) / (2 * h);
+    double impl_vol = guess - minimized_function(guess, price, strike, time, rate, value)/m;
+
+    while (abs(impl_vol-guess) > 0.01) {
+        double guess = impl_vol;
+        double m = (minimized_function(guess + h, price, strike, time, rate, value) - minimized_function(guess - h, price, strike, time, rate, value)) / (2 * h);
+        double impl_vol = guess - minimized_function(guess, price, strike, time, rate, value)/m;
+    }
+
+    return impl_vol;
+}
+
+
 
 
 
