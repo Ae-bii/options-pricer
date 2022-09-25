@@ -2,13 +2,6 @@
 #include <cmath>
 #include <iomanip>
 
-/*
-
-TODO: Use array from either Numpy or Boost for better computation
-
-*/
-
-
 double normalCDF(double x) {
     return erfc(-x / sqrt(2.0))/2.0;
 }
@@ -23,126 +16,43 @@ double calculate_options_price(double volatility, double price, double strike, d
     return ceil(option_price * 100.0) / 100.0;
 }
 
-// Return as a pointer
-double* calculate_array_options_price(double volatility[], double price, double strike, double time, double rate) {
-    double* option_price = new double[sizeof(volatility)];
-
-    for (int i = 0; i < sizeof(option_price); i++) {
-        double d1 = (log(price / strike) + (rate + ((volatility[i] * volatility[i]) / 2.0) * time)) / (volatility[i] * sqrt(time));
-        double d2 = d1 - (volatility[i] * sqrt(time));
-        option_price[i] = ceil((normalCDF(d1) * price - (normalCDF(d2) * strike * exp(-rate * time))) * 100.0) / 100.0;
-    }
-
-    return option_price;
-}
-
 // Difference between the call option price and calculated price
-double* minimized_function(double volatility[], double price, double strike, double time, double rate, double value) {
-    double* ptr = calculate_array_options_price(volatility, price, strike, time, rate);
-    double* difference = new double[sizeof(volatility)];
-
-    for (int i = 0; i < sizeof(difference); i++) {
-        difference[i] = value - ptr[i];
-    }
-
-    delete[] ptr;
-
-    return difference;
+double minimized_function(double volatility, double price, double strike, double time, double rate, double value) {
+    return value - calculate_options_price(volatility, price, strike, time, rate);
 }
 
 // Used secant method to calculate the implied volatility
 double calculate_implied_volatility_secant(double price, double strike, double time, double rate, double value) {
     double h = 0.01;
-    double guess[100];
-    for (int i = 0; i < sizeof(guess); i++) {
-        guess[i] = i / 100.0;
+    double guess = 0.14;
+    double m = (minimized_function(guess + h, price, strike, time, rate, value) - minimized_function(guess - h, price, strike, time, rate, value)) / (2 * h);
+    double impl_vol = guess - minimized_function(guess, price, strike, time, rate, value)/m;
+
+    while (abs(impl_vol-guess) > 0.001) {
+        double guess = impl_vol;
+        double m = (minimized_function(guess + h, price, strike, time, rate, value) - minimized_function(guess - h, price, strike, time, rate, value)) / (2 * h);
+        double impl_vol = guess - minimized_function(guess, price, strike, time, rate, value)/m;
     }
 
-    double guess_plus_h[100] = {0};
-    for (int i = 0; i < sizeof(guess); i++) {
-        guess_plus_h[i] = guess[i] + h;
-    }
-
-    double guess_minus_h[100] = {0};
-    for (int i = 0; i < sizeof(guess); i++) {
-        guess_minus_h[i] = guess[i] - h;
-    }
-
-    double* add = minimized_function(guess_plus_h, price, strike, time, rate, value);
-    double* minus = minimized_function(guess_minus_h, price, strike, time, rate, value);
-    double m[sizeof(guess)] = {0};
-    for (int i = 0; i < sizeof(guess); i++) {
-        m[i] = (add[i] - minus[i]) / (2 * h);
-    }
-    delete[] add;
-    delete[] minus;
-
-    // Convert to arrays
-    double* min = minimized_function(guess, price, strike, time, rate, value);
-    double impl_vol[sizeof(guess)] = {0};
-    for (int i = 0; i < sizeof(guess); i++) {
-        impl_vol[i] = guess[i] - min[i]/m[i];
-    }
-    delete[] min;
-
-    double error = 1;
-
-    while (true) {
-        for (int i = 0; i < sizeof(impl_vol); i++) {
-            guess[i] = impl_vol[i];
-
-            double guess_plus_h[100] = {0};
-            for (int i = 0; i < sizeof(guess); i++) {
-                guess_plus_h[i] = guess[i] + h;
-            }
-
-            double guess_minus_h[100] = {0};
-            for (int i = 0; i < sizeof(guess); i++) {
-                guess_minus_h[i] = guess[i] - h;
-            }
-
-            double* add = minimized_function(guess_plus_h, price, strike, time, rate, value);
-            double* minus = minimized_function(guess_minus_h, price, strike, time, rate, value);
-            for (int i = 0; i < sizeof(guess); i++) {
-                m[i] = (add[i] - minus[i]) / (2 * h);
-            }
-            delete[] add;
-            delete[] minus;
-
-            double* min = minimized_function(guess, price, strike, time, rate, value);
-            double impl_vol[sizeof(guess)] = {0};
-            for (int i = 0; i < sizeof(guess); i++) {
-                impl_vol[i] = guess[i] - min[i]/m[i];
-            }
-            delete[] min;
-        }
-
-        for (int i = 0; i < sizeof(impl_vol); i++) {
-            if (abs(impl_vol[i] - guess[i]) < h) {
-                return impl_vol[i];
-            }
-        }
-    }
-
-    return 0;
+    return impl_vol;
 }
 
 // Used Newton's method to calculate the implied volatility
-// double calculate_implied_volatility_newtons(double price, double strike, double time, double rate, double value) {
-//     double h = 0.01;
-//     // TODO: Use a grid/vector/matrix of initial guesses
-//     double guess = 0.2;
-//     double m = (minimized_function(guess + h, price, strike, time, rate, value) - minimized_function(guess, price, strike, time, rate, value)) / h;
-//     double impl_vol = guess - minimized_function(guess, price, strike, time, rate, value)/m;
+double calculate_implied_volatility_newtons(double price, double strike, double time, double rate, double value) {
+    double h = 0.01;
+    // TODO: Use a grid/vector/matrix of initial guesses
+    double guess = 0.2;
+    double m = (minimized_function(guess + h, price, strike, time, rate, value) - minimized_function(guess, price, strike, time, rate, value)) / h;
+    double impl_vol = guess - minimized_function(guess, price, strike, time, rate, value)/m;
 
-//     while (abs((impl_vol-guess)/impl_vol) > h) {
-//         double guess = impl_vol;
-//         double m = (minimized_function(guess + h, price, strike, time, rate, value) - minimized_function(guess, price, strike, time, rate, value)) / h;
-//         double impl_vol = guess - minimized_function(guess, price, strike, time, rate, value)/m;
-//     }
+    while (abs((impl_vol-guess)/impl_vol) > h) {
+        double guess = impl_vol;
+        double m = (minimized_function(guess + h, price, strike, time, rate, value) - minimized_function(guess, price, strike, time, rate, value)) / h;
+        double impl_vol = guess - minimized_function(guess, price, strike, time, rate, value)/m;
+    }
 
-//     return impl_vol;
-// }
+    return impl_vol;
+}
 
 
 
@@ -188,7 +98,7 @@ int main() {
         // std::cin >> interest_rate;
         // interest_rate /= 100.0;
 
-        std::cout << "The implied volatility is " << calculate_implied_volatility_secant(price_of_asset, strike_price, time_exp, interest_rate, option_price) << std::endl;
+        std::cout << "The implied volatility is " << calculate_implied_volatility_newtons(price_of_asset, strike_price, time_exp, interest_rate, option_price) << std::endl;
     }
     else if (choice == 2) {
         std::cout << "Please enter the volatility as a percent: ";
