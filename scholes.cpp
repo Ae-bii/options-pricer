@@ -68,7 +68,7 @@ int main() {
     double option_price;
 
     std::cout << "What would you like to calculate?\n";
-    std::cout << "1. Implied Volatility\n2. Option Price\n";
+    std::cout << "1. Implied Volatility\n2. Call Option Price\n3. Put Option Price\n";
     // TODO: Add option to calculate Put option price
 
     std::cin >> choice;
@@ -119,6 +119,28 @@ int main() {
         interest_rate /= 100.0;
 
         std::cout << "The derived price of the European call option is $" << calculate_options_price(volatility, price_of_asset, strike_price, time_exp, interest_rate) << std::endl;
+    }
+    else if (choice == 3) {
+        std::cout << "Please enter the volatility as a percent: ";
+        std::cin >> volatility;
+        volatility /= 100.0;
+
+        std::cout << "Please enter the price of the asset: ";
+        std::cin >> price_of_asset;
+
+        std::cout << "Please enter the strike price: ";
+        std::cin >> strike_price;
+
+        std::cout << "Please enter the time until expiration in years: ";
+        std::cin >> time_exp;
+
+        std::cout << "Please enter the risk-free interest rate as a percent: ";
+        std::cin >> interest_rate;
+        interest_rate /= 100.0;
+
+        // Fix this with the right formula
+
+        std::cout << "The derived price of the European put option is $" << calculate_options_price(volatility, price_of_asset, strike_price, time_exp, interest_rate) << std::endl;
     }
 
     return 0;
